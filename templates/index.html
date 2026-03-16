@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <a href="https://github.com/shlemmmm/localtransfer">Source Code</a>
+    
+    <form method="POST">
+        <input type="password" name="pwd" placeholder="Password" required autofocus>
+        <button type="submit">Unlock</button>
+    </form>
+
+    {% if server_death is not none %}
+    
+    <pre>
+    <code>
+        <hr>
+        Server death @ <strong>{{ server_death }}</strong>
+        Access granted. Redirecting in <span id="timer">5</span>s...
+    </code>
+    </pre>
+    
+    <script>
+        let time = 5; // Short delay for user feedback
+        const display = document.getElementById('timer');
+        
+        const interval = setInterval(() => {
+            if (time <= 0) {
+                clearInterval(interval);
+                window.location.href = "/browse";
+            } else {
+                time--;
+                display.innerText = time;
+            }
+        }, 1000);
+    </script>
+    {% endif %}
+</body>
+</html>
