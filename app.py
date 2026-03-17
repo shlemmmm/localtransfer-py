@@ -26,7 +26,7 @@ parser.add_argument('--length', type=int, default=8, help="Length of auto-genera
 group = parser.add_mutually_exclusive_group()
 group.add_argument('--password', type=str, help="Set a custom password")
 group.add_argument('--autopassword', action='store_true', help="Generate a random password")
-group.add_argument('--lifespan', type=int, help="Set a custom lifespan")
+parser.add_argument('--lifespan', type=int, help="Set a custom lifespan")
 
 args = parser.parse_args()
 
