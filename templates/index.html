@@ -1,20 +1,23 @@
 <!DOCTYPE html>
 <html>
 <body>
-    <a href="https://github.com/shlemmmm/localtransfer">Source Code</a>
+    <a href="https://github.com/shlemmmm/localtransfer-py">Source Code</a>
+
+    {% if password_state is true %}
     
     <form method="POST">
         <input type="password" name="pwd" placeholder="Password" required autofocus>
         <button type="submit">Unlock</button>
     </form>
 
+    {% endif %}
+
     {% if server_death is not none %}
-    
     <pre>
     <code>
         <hr>
         Server death @ <strong>{{ server_death }}</strong>
-        Access granted. Redirecting in <span id="timer">5</span>s...
+        Redirecting in <span id="timer">5</span>s...
     </code>
     </pre>
     
@@ -31,6 +34,12 @@
                 display.innerText = time;
             }
         }, 1000);
+    </script>
+    {% endif %}
+
+    {% if password_state is false %}
+    <script>
+        window.location.href = "/browse";
     </script>
     {% endif %}
 </body>

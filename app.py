@@ -26,22 +26,31 @@ parser.add_argument('--length', type=int, default=8, help="Length of auto-genera
 group = parser.add_mutually_exclusive_group()
 group.add_argument('--password', type=str, help="Set a custom password")
 group.add_argument('--autopassword', action='store_true', help="Generate a random password")
+group.add_argument('--lifespan', type=int, help="Set a custom lifespan")
 
 args = parser.parse_args()
-
-
 
 # Logic to determine the final password
 ABSOLUTE_PATH = os.path.abspath(args.path)
 
+password_exists = True
+
 if args.password:
     pw_model = PasswordModel(password=args.password)
-else:
-    # This triggers if --autopassword is used OR if nothing is provided (default)
+    SECRET_PWD = pw_model.password
+elif args.autopassword:
     pw_model = PasswordModel(length=args.length)
+    SECRET_PWD = pw_model.password
+else:
+    password_exists = False
+    SECRET_PWD = None
 
-SECRET_PWD = pw_model.password
-LIFESPAN   = pw_model.time_left_seconds
+if args.lifespan:
+    LIFESPAN = args.lifespan
+elif args.password or args.autopassword:
+    LIFESPAN = pw_model.time_left_seconds
+else:
+    LIFESPAN = 100000000
 
 try:
     SERVER_DEATH = time.ctime(time.time() + LIFESPAN)
@@ -84,8 +93,10 @@ def index():
             server_death=SERVER_DEATH # Only set this on success
         else:
             return "Invalid Password", 401
+    elif SECRET_PWD == None:
+        session['access_token'] = secrets.token_urlsafe(16)
             
-    return render_template('index.html', server_death=server_death)
+    return render_template('index.html', server_death=server_death, password_state=password_exists)
 
 @app.route('/browse/')
 @app.route('/browse/<path:subpath>')
@@ -135,6 +146,7 @@ def file_server(subpath=""):
     <html>
      <head><title>Listing: /{subpath}</title></head>
      <body>
+      <a href="https://github.com/shlemmmm/localtransfer-py">Source Code</a>
       <h1>Contents of /{subpath}</h1>
       <hr>
       <ul>{links_html}</ul>
@@ -146,7 +158,7 @@ def file_server(subpath=""):
 @app.route('/fetch/<path:filename>')
 def download(filename):
     if 'access_token' not in session:
-        return "Unauthorized", 403
+        return "Unauthorized! GTFO", 403
     
     # send_from_directory handles security internally when provided a relative path
     return send_from_directory(ABSOLUTE_PATH, filename, as_attachment=True)
@@ -156,7 +168,7 @@ if __name__ == "__main__":
     port = 5000
     
     print("\n" + "="*42)
-    print("github.com/shlemmmm/localtransfer")
+    print("github.com/shlemmmm/localtransfer-py")
     print("="*42)
     print(f"IP:        \thttps://{local_ip}:{port}")
     print(f"PASSWORD:  \t{SECRET_PWD}")
