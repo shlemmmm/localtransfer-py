@@ -11,51 +11,43 @@ import logging # Disables flask logging
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
-from model import PasswordModel
+from model import Password
 
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(32)
 
-parser = ap.ArgumentParser(prog='localtransfer')
-
-# Standard arguments
+parser = ap.ArgumentParser(prog='localtransfer-py')
 parser.add_argument('--path', default=os.getcwd(), help="Directory to share")
-parser.add_argument('--length', type=int, default=8, help="Length of auto-generated password")
-
-# Mutually Exclusive Group: Password or Auto-Password
+parser.add_argument('--length', type=int, default=12, help="Length of auto-generated password")
+parser.add_argument('--lifespan', type=int, help="Set a custom lifespan")
 group = parser.add_mutually_exclusive_group()
 group.add_argument('--password', type=str, help="Set a custom password")
 group.add_argument('--autopassword', action='store_true', help="Generate a random password")
-parser.add_argument('--lifespan', type=int, help="Set a custom lifespan")
-
 args = parser.parse_args()
 
 # Logic to determine the final password
 ABSOLUTE_PATH = os.path.abspath(args.path)
 
-password_exists = True
-
-if args.password:
-    pw_model = PasswordModel(password=args.password)
-    SECRET_PWD = pw_model.password
-elif args.autopassword:
-    pw_model = PasswordModel(length=args.length)
-    SECRET_PWD = pw_model.password
-else:
-    password_exists = False
-    SECRET_PWD = None
-
 if args.lifespan:
     LIFESPAN = args.lifespan
-elif args.password or args.autopassword:
+else:
+    LIFESPAN = 3153600000
+
+password_exists = True
+if args.password or args.autopassword:
+    pw_model = Password(password=args.password, length=args.length)
+    SECRET_PWD = pw_model.password
     LIFESPAN = pw_model.time_left_seconds
 else:
-    LIFESPAN = 100000000
+    password_exists = False # Default is no password, TODO : add a warning for that.
+    SECRET_PWD = None
+
+
 
 try:
     SERVER_DEATH = time.ctime(time.time() + LIFESPAN)
 except (OverflowError, OSError):
-    SERVER_DEATH = "Indefinite (Decades+)"
+    SERVER_DEATH = "Indefinite" # Lifespan is too big for a human to bruteforce anyway
 
 
 
@@ -67,8 +59,10 @@ def self_destruct_sequence(duration):
     print("SERVER SELF-DESTRUCTED.")
     print("!"*40 + "\n")
     os._exit(0)
-killer_thread = threading.Thread(target=self_destruct_sequence, args=(LIFESPAN,), daemon=True)
-killer_thread.start()
+
+if SERVER_DEATH != "Indefinite":
+    killer_thread = threading.Thread(target=self_destruct_sequence, args=(LIFESPAN,), daemon=True)
+    killer_thread.start()
 
 def get_local_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -175,4 +169,4 @@ if __name__ == "__main__":
     print(f"TOTAL LIFE:\t{LIFESPAN}s")
     print("="*42+"\n")
     
-    app.run(host='0.0.0.0', port=port, ssl_context='adhoc', debug=False) # Debug must be False for threads to behave
+    app.run(host='0.0.0.0', port=port, ssl_context='adhoc', debug=False)
